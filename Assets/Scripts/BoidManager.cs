@@ -5,41 +5,50 @@ using UnityEngine;
 public class BoidManager : MonoBehaviour
 {
     public List<GameObject> boids = new List<GameObject>();
-    
-    void Start()
-    {
-        
-    }
-    
-    void Update()
-    {
-        
-    }
+    public float maxSpeed;
+    public float maxForce;
+    [Range(0, 50)]
+    public float alignmentWeight;
+    [Range(0, 50)]
+    public float separationWeight;
+    [Range(0, 50)]
+    public float cohesionWeight;
+    public float neighborRadius;
 
-    public List<GameObject> GetNearByBoids(Vector3 location, float searchDistance)
+    public Vector3 GetAverageLocation(List<GameObject> neighbors)
     {
-        return boids
-            .Where(boid => Vector3.Distance(location, boid.transform.position) <= searchDistance)
-            .ToList();
-    }
-
-    public Vector3 GetDirectionTowards(GameObject subject, Vector3 target)
-    {
-        return (subject.transform.forward - target).normalized;
-    }
-
-    public Vector3 GetAveragePosition(List<GameObject> boids)
-    {
-        var x = 0f;
-        var y = 0f;
-        var z = 0f;
-        foreach (var position in boids.Select(boid => boid.transform.position))
+        var average = new Vector3(0, 0, 0);
+        foreach (var boid in neighbors)
         {
-            x += position.x;
-            y += position.y;
-            z += position.z;
+            average += boid.transform.position;
         }
+        average /= neighbors.Count;
+        return average;
+    }
 
-        return new Vector3(x / boids.Count, y / boids.Count, z / boids.Count);
+    public Vector3 GetAverageVelocity(List<GameObject> neighbors)
+    {
+        var average = new Vector3(0, 0, 0);
+        foreach (var boid in neighbors)
+        {
+            
+        }
+        average /= neighbors.Count;
+        return average;
+    }
+    
+    public List<GameObject> GetBoids()
+    {
+        return boids;
+    }
+
+    public List<GameObject> GetBoidsInBoxCollider(BoxCollider boxCollider)
+    {
+        return boids.FindAll(obj => boxCollider.bounds.Contains(obj.transform.position)).ToList();
+    }
+
+    public GameObject GetBoidFromPosition(Vector3 position)
+    {
+        return boids.Find(obj => Vector3.Distance(position, obj.transform.position) <= 0.5);
     }
 }

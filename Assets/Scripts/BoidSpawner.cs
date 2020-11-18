@@ -11,8 +11,7 @@ public class BoidSpawner : MonoBehaviour
     {
         manager = FindObjectOfType<BoidManager>();
     }
-
-    // Start is called before the first frame update
+    
     void Start()
     {
         for (int i = 0; i < count; i++)
@@ -20,12 +19,6 @@ public class BoidSpawner : MonoBehaviour
             var boid = Instantiate(boidPrefab, CreateRandomPosition(), Quaternion.identity);
             manager.boids.Add(boid);
         }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     private Vector3 CreateRandomPosition()

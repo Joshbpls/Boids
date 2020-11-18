@@ -1,106 +1,95 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
+using Vector3 = UnityEngine.Vector3;
 
 public class BoidController : MonoBehaviour
 {
-    private const float SEARCH_RADIUS = 25;
-    public float speed;
-    public float separation;
     private BoidManager manager;
-    private Vector3 velocity = new Vector3(0, 0, 0);
-    private Vector3 acceleration = new Vector3(0, 0, 0);
+    private Vector3 velocity;
+    private Transform cachedTransform;
+
+    private void Awake()
+    {
+        manager = FindObjectOfType<BoidManager>();
+        cachedTransform = transform;
+    }
 
     void Start()
     {
-        transform.rotation = Random.rotation;
-        manager = FindObjectOfType<BoidManager>();
+        
     }
-    
+
+    private void OnDrawGizmos()
+    {
+        var nearby = GetBoidsInRadius();
+        var averagePosition = manager.GetAverageLocation(nearby);
+        foreach (var boid in nearby)
+        {
+            var separate = CreateSeparateVector(boid.transform.position);
+            var align = TurnTowards(averagePosition);
+            Gizmos.color = Color.red;
+            Gizmos.DrawRay(transform.position, separate * 10);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawRay(transform.position, align * 10);
+        }
+    }
+
     void Update()
     {
-        var nearby = manager.GetNearByBoids(transform.position, SEARCH_RADIUS);
-        acceleration += PointTowardsFlock(nearby);
-        acceleration += GetSeparationVector(nearby);
-        ApplyCalculatedVelocity();
-    }
-
-    private void ApplyCalculatedVelocity()
-    {
-        velocity += acceleration;
-        AddToPosition(velocity);
-        acceleration *= 0;
-    }
-
-    private void AddToPosition(Vector3 vel)
-    {
-        var position = transform.position;
-        var x = position.x + vel.x;
-        var y = position.y + vel.y;
-        var z = position.z + vel.z;
-        transform.position = new Vector3(x, y, z);
-
-    }
-
-    private Vector3 PointTowards(Vector3 destination)
-    {
-        var direction = destination - transform.position;
-        direction.Normalize();
-        direction *= speed;
-        var point = direction - velocity;
-        return Vector3.ClampMagnitude(point, speed);
-    }
-
-    private Vector3 GetSeparationVector(List<GameObject> nearbyBoids)
-    {
-        var vector = new Vector3(0, 0, 0);
-        foreach (var boid in nearbyBoids)
+        var acceleration = Vector3.zero;
+        var neighbors = GetBoidsInRadius();
+        if (neighbors.Count > 0)
         {
-            var distance = Vector3.Distance(transform.position, boid.transform.position);
-            if (distance > 0 && distance < separation)
+            var averagePosition = manager.GetAverageLocation(neighbors);
+            var averageVelocity = manager.GetAverageVelocity(neighbors);
+            
+            var separate = TurnTowards(transform.position - averagePosition) * manager.separationWeight;
+            var align = TurnTowards(averageVelocity) * manager.alignmentWeight;
+            var cohesion = TurnTowards(averagePosition) * manager.cohesionWeight;
+            
+            acceleration += separate;
+            acceleration += align;
+            acceleration += cohesion;
+
+            var avoidance = GetObjectAvoidanceVector() * 20;
+            if (avoidance != null)
             {
-                var difference = transform.position - boid.transform.position;
-                difference.Normalize();
-                difference /= distance;
-                vector += difference;
+                acceleration += Vector3.ClampMagnitude((Vector3) avoidance, manager.maxForce);
             }
         }
-
-        if (nearbyBoids.Count > 0)
-        {
-            vector /= nearbyBoids.Count;
-        }
-
-        if (vector.magnitude > 0)
-        {
-            vector.Normalize();
-            vector *= speed;
-            vector -= velocity;
-            vector = Vector3.ClampMagnitude(vector, speed);
-
-        }
-
-        return vector;
+        velocity += acceleration * Time.deltaTime;
     }
 
-    /**
-     * Creates a vector that points towards the center of a flock of boids.
-     */
-    private Vector3 PointTowardsFlock(List<GameObject> nearbyBoids)
+    Vector3 TurnTowards(Vector3 vector)
     {
-        var sum = new Vector3(0, 0, 0);
-        if (nearbyBoids.Count <= 0)
+        var turn = vector.normalized * manager.maxSpeed - velocity;
+        return Vector3.ClampMagnitude(turn, manager.maxForce);
+    }
+
+    Vector3 CreateSeparateVector(Vector3 position)
+    {
+        return transform.position - position;
+    }
+
+    List<GameObject> GetBoidsInRadius()
+    {
+        return manager.boids.FindAll(IsNeighbor);
+    }
+
+    private Vector3? GetObjectAvoidanceVector()
+    {
+        if(Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out var hit, 10))
         {
-            return sum;
+            return (transform.position - hit.point) / hit.distance;
         }
-        foreach (var position in nearbyBoids.Select(boid => boid.transform.position))
-        {
-            sum.x += position.x;
-            sum.y += position.y;
-            sum.z += position.z;
-        }
-        sum /= nearbyBoids.Count;
-        return PointTowards(sum);
+
+        return null;
+    }
+
+    private Boolean IsNeighbor(GameObject otherBoid)
+    {
+        var distance = Vector3.Distance(transform.position, otherBoid.transform.position);
+        return distance <= manager.neighborRadius;
     }
 }
