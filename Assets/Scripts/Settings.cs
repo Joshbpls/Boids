@@ -11,4 +11,5 @@ public class Settings : MonoBehaviour {
     public float initialSpeed;
     public float separationRadius;
     public float searchRadius;
+    public Vector3 sceneOrigin;
 }
