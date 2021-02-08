@@ -31,18 +31,24 @@ public class SubmarineController : MonoBehaviour {
 
     private void HandleVerticalMovement() {
         if (Input.GetKey(KeyCode.W)) {
-            body.velocity += new Vector3(0, 0.01f, 0);
+            transform.Rotate(Vector3.right, -0.5f);
         } 
         if (Input.GetKey(KeyCode.S)) {
-            body.velocity += new Vector3(0, -0.01f, 0);
+            transform.Rotate(Vector3.right, 0.5f);
         }
     }
 
     private void HandleRotation() {
         if (Input.GetKey(KeyCode.A)) {
+            if (Input.GetKey(KeyCode.LeftShift)) {
+                transform.Rotate(Vector3.forward, 0.5f);
+            }            
             transform.Rotate(Vector3.up, 0.5f);
         }
         if (Input.GetKey(KeyCode.D)) {
+            if (Input.GetKey(KeyCode.LeftShift)) {
+                transform.Rotate(Vector3.forward, -0.5f);
+            }                 
             transform.Rotate(Vector3.up, -0.5f);
         }
     }

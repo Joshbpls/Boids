@@ -29,6 +29,7 @@ public class BoidSpawner : MonoBehaviour {
     }
 
     private void SpawnBoid(Vector3 position) {
-        Instantiate(prefab, position, Quaternion.identity);
+        var obj = Instantiate(prefab, position, Quaternion.identity);
+        obj.transform.forward = transform.forward;
     }
 }
